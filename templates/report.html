@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    font-family: "Helvetica Neue", Arial, "Segoe UI", sans-serif;
+    color: #111;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 16mm 14mm 14mm 14mm;
+    page-break-after: always;
+    background: #ffffff;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ---------- Header ---------- */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6mm;
+  }
+  .badge {
+    border: 1.5px solid #111;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img.client-logo { width: auto; object-fit: contain; } /* height set per-client via inline style */
+  .brand img.company-logo { height: 32px; width: auto; object-fit: contain; }
+
+  /* ---------- Title ---------- */
+  .title { margin-bottom: 5mm; }
+  .title .t1 { font-size: 56px; font-weight: 800; letter-spacing: -1.5px; line-height: 0.98; }
+  .title .t2 { font-size: 56px; font-weight: 400; letter-spacing: -1.5px; line-height: 0.98; }
+
+  /* ---------- Card ---------- */
+  .card {
+    border-radius: 22px;
+    padding: 8mm 10mm;
+    background: linear-gradient(135deg, #ece6fb 0%, #e6e4fb 40%, #dae3f9 72%, #cfe0f7 100%);
+  }
+
+  h2.sec { font-size: 30px; font-weight: 800; color:#0e1830; margin-bottom: 10px; }
+  h2.sec.tight { margin-bottom: 6px; }
+  .lead { font-size: 14px; line-height: 1.6; color:#1b2438; text-align: justify; }
+
+  .legend-title { font-weight: 700; font-size: 14px; margin: 6px 0 6px; }
+  .legend-row { display:flex; align-items:center; gap:9px; font-size:13.5px; font-style: italic; color:#1b2438; margin-bottom: 4px; }
+
+  .dot { width:15px; height:15px; border-radius:50%; flex:0 0 auto; }
+  .dot.red    { background:#ef4444; }
+  .dot.green  { background:#22c55e; }
+  .dot.yellow { background:#eab308; }
+
+  .subhead { font-weight: 700; font-size: 15px; margin: 16px 0 12px; }
+
+  /* ---------- Source rows ---------- */
+  .source { display:flex; align-items:stretch; gap:14px; margin-bottom: 8px; }
+  .source .left {
+    flex: 0 0 40%;
+    display:flex; align-items:center; gap:12px;
+    background: #f7f5fd;
+    border: 1px solid #eceafa;
+    border-radius: 14px;
+    padding: 10px 18px;
+    min-height: 54px;
+  }
+  .source .left .logo { flex:1; display:flex; align-items:center; justify-content:flex-start; }
+  .source .left .logo img { width: 90px; height: 26px; object-fit: contain; object-position: left center; display: block; }
+  .source .left .sname { flex:1; font-size:17px; font-weight:600; color:#3a3f52; }
+  .source .right {
+    flex: 1;
+    display:flex; align-items:center; justify-content:center;
+    border: 1.5px dashed #9fb4d4;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-size: 13.5px; font-style: italic; color:#3a4768; text-align:center;
+    min-height: 54px;
+  }
+
+  /* ---------- Incident table ---------- */
+  table { width:100%; border-collapse: collapse; margin-top: 6px; }
+  table th, table td {
+    border: 1px solid #b9c2d6;
+    padding: 10px 8px;
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  table th { font-weight: 700; color:#0e1830; }
+  table td { font-style: italic; color:#1b2438; }
+  table td.status { font-style: normal; }
+  table.empty td { font-style: normal; color:#5b6577; }
+
+  /* ---------- Support measures ---------- */
+  .measures { margin-top: 6px; }
+  .measures > .inc { margin-bottom: 12px; }
+  .measures .inc > .num { font-weight: 800; font-size: 15px; color:#0e1830; margin-bottom: 4px; }
+  .measures ul { margin-left: 26px; }
+  .measures li { font-size: 14px; line-height: 1.5; color:#1b2438; margin-bottom: 3px; }
+  .measures .none { font-size: 14px; color:#1b2438; padding-left: 4px; }
+
+  /* ---------- Hours ---------- */
+  .hours { margin-top: 6px; font-size: 15px; line-height: 1.7; color:#0e1830; }
+  .hours .val { font-weight: 800; }
+</style>
+</head>
+<body>
+
+{% macro brandblock() %}
+<div class="brand">
+  {% if client_logo %}<img class="client-logo" src="{{ client_logo }}" style="height:{{ client_logo_height | default('44px') }}" alt="client">{% endif %}
+  {% if company_logo %}<img class="company-logo" src="{{ company_logo }}" alt="company">{% endif %}
+</div>
+{% endmacro %}
+
+{% macro hnum(v) %}{{ v }}{{ hours.suffix }}{% endmacro %}
+
+<!-- ============ PAGE 1 ============ -->
+<div class="page">
+  <div class="header">
+    <div class="badge">WARTUNGSREPORT&nbsp;-&nbsp;{{ month_year_upper }}</div>
+    {{ brandblock() }}
+  </div>
+
+  <div class="title">
+    <div class="t1">{{ title }}</div>
+    <div class="t2">Wartungsbericht</div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec">Übersicht</h2>
+    <p class="lead">{{ overview }}</p>
+
+    <h2 class="sec tight" style="margin-top:18px;">Statusübersicht</h2>
+    <div class="legend-title">Legende:</div>
+    <div class="legend-row"><span class="dot red"></span>Akuter Fehler (ungelöst)</div>
+    <div class="legend-row"><span class="dot green"></span>Kein Fehler aufgetreten</div>
+    <div class="legend-row"><span class="dot yellow"></span>Supportleistung beansprucht (gelöst)</div>
+
+    <div class="subhead">Überprüfte Datenquellen &amp; Hauptproblembeschreibung</div>
+
+    {% for s in sources %}
+    <div class="source">
+      <div class="left">
+        {% if s.logo %}<span class="logo"><img src="{{ s.logo }}" alt="{{ s.name }}"></span>
+        {% else %}<span class="sname">{{ s.name }}</span>{% endif %}
+        <span class="dot {{ s.status }}"></span>
+      </div>
+      <div class="right">{{ s.problem if s.problem else "-" }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="page">
+  <div class="header">
+    <div class="badge">STATUSREPORT&nbsp;-&nbsp;{{ month_year_upper }}</div>
+    {{ brandblock() }}
+  </div>
+
+  <div class="title">
+    <div class="t1">Incident</div>
+    <div class="t2">Report</div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec">Übersicht</h2>
+    <table {% if not incidents %}class="empty"{% endif %}>
+      <thead>
+        <tr>
+          <th style="width:13%;">Incident Nr</th>
+          <th style="width:30%;">Beschreibung</th>
+          <th style="width:27%;">Grund</th>
+          <th style="width:12%;">Datum</th>
+          <th style="width:18%;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if incidents %}
+          {% for i in incidents %}
+          <tr>
+            <td>{{ i.nr }}</td>
+            <td>{{ i.description }}</td>
+            <td>{{ i.reason }}</td>
+            <td>{{ i.date }}</td>
+            <td class="status">{{ i.status }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <h2 class="sec" style="margin-top:22px;">Support Maßnahmen</h2>
+    <div class="measures">
+      {% if measures %}
+        {% for m in measures %}
+        <div class="inc">
+          <div class="num">{{ m.nr }}</div>
+          <ul>
+            {% for item in m["items"] %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="none">In diesem Zeitraum sind keine Wartungsfälle aufgetreten.</div>
+      {% endif %}
+    </div>
+
+    <h2 class="sec" style="margin-top:18px;">Aufgewendete Stunden</h2>
+    <div class="hours">
+      <div>{{ hours.total_label }}: {{ hnum(hours.total_value) }}</div>
+      {% for q in hours.quotas %}
+      <div>Verfügbares Gratiskontingent{% if q.label %} {{ q.label }}{% endif %}: {{ hnum(q.value) }}</div>
+      {% endfor %}
+      <div>Zu verrechnende Leistungsstunden: {{ hnum(hours.billable_value) }}</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

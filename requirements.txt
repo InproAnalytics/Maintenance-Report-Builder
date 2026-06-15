@@ -1,0 +1,7 @@
+streamlit>=1.32
+jinja2>=3.1
+# Primary PDF backend (best gradient fidelity). After install, run once:
+#   playwright install chromium
+playwright>=1.40
+# Fallback PDF backend, used automatically if Chromium isn't available.
+weasyprint>=60
