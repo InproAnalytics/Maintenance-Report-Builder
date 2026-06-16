@@ -86,10 +86,7 @@
   .legend-title { font-weight: 700; font-size: 14px; margin: 6px 0 6px; }
   .legend-row { display:flex; align-items:center; gap:9px; font-size:13.5px; font-style: italic; color:#1b2438; margin-bottom: 4px; }
 
-  .dot { width:15px; height:15px; border-radius:50%; flex:0 0 auto; }
-  .dot.red    { background:#ef4444; }
-  .dot.green  { background:#22c55e; }
-  .dot.yellow { background:#eab308; }
+  /* .dot replaced by inline SVG circles — see dot() macro */
 
   .subhead { font-weight: 700; font-size: 15px; margin: 16px 0 12px; }
 
@@ -155,6 +152,11 @@
 
 {% macro hnum(v) %}{{ v }}{{ hours.suffix }}{% endmacro %}
 
+{% macro dot(status) -%}
+{%- set _c = {'red':'#ef4444','green':'#22c55e','yellow':'#eab308'} -%}
+<svg width="15" height="15" viewBox="0 0 15 15" xmlns="http://www.w3.org/2000/svg" style="flex:0 0 auto;display:block;"><circle cx="7.5" cy="7.5" r="7.5" fill="{{ _c[status] }}"/></svg>
+{%- endmacro %}
+
 <!-- ============ PAGE 1 ============ -->
 <div class="page">
   <div class="header">
@@ -173,9 +175,9 @@
 
     <h2 class="sec tight" style="margin-top:18px;">Statusübersicht</h2>
     <div class="legend-title">Legende:</div>
-    <div class="legend-row"><span class="dot red"></span>Akuter Fehler (ungelöst)</div>
-    <div class="legend-row"><span class="dot green"></span>Kein Fehler aufgetreten</div>
-    <div class="legend-row"><span class="dot yellow"></span>Supportleistung beansprucht (gelöst)</div>
+    <div class="legend-row">{{ dot('red') }}Akuter Fehler (ungelöst)</div>
+    <div class="legend-row">{{ dot('green') }}Kein Fehler aufgetreten</div>
+    <div class="legend-row">{{ dot('yellow') }}Supportleistung beansprucht (gelöst)</div>
 
     <div class="subhead">Überprüfte Datenquellen &amp; Hauptproblembeschreibung</div>
 
@@ -184,7 +186,7 @@
       <div class="left">
         {% if s.logo %}<span class="logo"><img src="{{ s.logo }}" alt="{{ s.name }}"></span>
         {% else %}<span class="sname">{{ s.name }}</span>{% endif %}
-        <span class="dot {{ s.status }}"></span>
+        {{ dot(s.status) }}
       </div>
       <div class="right">{{ s.problem if s.problem else "-" }}</div>
     </div>
