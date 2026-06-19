@@ -64,7 +64,7 @@ def generate_pdf(data: dict) -> bytes:
 
 
 if __name__ == "__main__":
-    # Quick sample render for local testing (Russ scenario).
+    # Quick sample render for local testing (no client logo — loaded from secrets at runtime).
     from assets import logo_data_uri
 
     sample = {
@@ -77,7 +77,8 @@ if __name__ == "__main__":
             "aller Reports. So erkennen wir frühzeitig mögliche Probleme und minimieren "
             "deren Auswirkungen."
         ),
-        "client_logo": logo_data_uri("_client_russ"),
+        "client_logo": "",
+        "client_logo_height": "36px",
         "company_logo": logo_data_uri("_company"),
         "sources": [
             {"name": "COMMITLY", "logo": logo_data_uri("COMMITLY"), "status": "green", "problem": ""},

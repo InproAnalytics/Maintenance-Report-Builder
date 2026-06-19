@@ -35,42 +35,44 @@ STATUS_LABELS = {
 }
 STATUS_KEYS = list(STATUS_LABELS.keys())
 
-# Client / project defaults derived from the reference reports.
-CONFIG = {
-    "Russ": {
-        "client_logo": "_client_russ",
-        "header_logo_h": "36px",
-        "projects": {
-            "": {
-                "title": "PowerBI", "quota": 1, "filename_token": "",
-                "tools": [("COMMITLY", "green"), ("Excel", "green"),
-                          ("timetac", "yellow"), ("Power BI", "yellow")],
-            },
-        },
-    },
-    "Haidegg": {
-        "client_logo": "_client_haidegg",
-        "header_logo_h": "36px",
-        "projects": {
-            "FieldClimate": {
-                "title": "FieldClimate", "quota": 2, "filename_token": "FieldClimate",
-                "tools": [("FieldClimate", "green"), ("Power BI", "green"),
-                          ("Microsoft Azure", "green")],
-            },
-            "Apfelsorten": {
-                "title": "Apfelsorten", "quota": 2, "filename_token": "Apfelsorten",
-                "tools": [("SharePoint", "green"), ("Power BI", "green"),
-                          ("Microsoft Azure", "green")],
-            },
-            "PV-Monitoring": {
-                "title": "PV-Monitoring", "quota": 4, "filename_token": "PvMonitoring",
-                "tools": [("SolarEdge", "green"), ("SunGrow", "green"),
-                          ("FusionSolar", "green"), ("Power BI", "green"),
-                          ("Microsoft Azure", "green")],
-            },
-        },
-    },
-}
+
+# --------------------------------------------------------------------- config from secrets
+
+def _build_config():
+    """Build the client/project CONFIG dict from Streamlit Secrets."""
+    cfg = {}
+    logos = st.secrets.get("client_logos", {})
+    for client_name, client_data in st.secrets["clients"].items():
+        projects = {}
+        for proj_key, proj_data in client_data["projects"].items():
+            # "default" in TOML maps to "" (no project name) in the app
+            actual_key = "" if proj_key == "default" else proj_key
+            projects[actual_key] = {
+                "title": proj_data["title"],
+                "quota": int(proj_data["quota"]),
+                "filename_token": proj_data["filename_token"],
+                "tools": [tuple(t) for t in proj_data["tools"]],
+            }
+        cfg[client_name] = {
+            "client_logo_uri": logos.get(client_name, ""),
+            "header_logo_h": client_data.get("header_logo_h", "36px"),
+            "projects": projects,
+        }
+    return cfg
+
+
+try:
+    CONFIG = _build_config()
+except Exception as _cfg_err:
+    st.error(
+        f"Client configuration could not be loaded from Streamlit Secrets: {_cfg_err}\n\n"
+        "Make sure the **[clients]** section is present in `.streamlit/secrets.toml` "
+        "(local) or **App Settings → Secrets** (Streamlit Cloud)."
+    )
+    st.stop()
+
+_CLIENT_NAMES = list(CONFIG.keys())
+
 
 def project_cfg(client, project):
     return CONFIG[client]["projects"][project]
@@ -88,12 +90,10 @@ def apply_defaults(client, project):
 
 # --------------------------------------------------------------------- shared helpers
 
-_HAIDEGG_PROJECTS = list(CONFIG["Haidegg"]["projects"].keys())
-
-
 def _on_quick_select_all():
     val = st.session_state.quick_select_all
-    for p in _HAIDEGG_PROJECTS:
+    client = st.session_state.quick_client_sel
+    for p in CONFIG[client]["projects"]:
         st.session_state[f"quick_proj_{p}"] = val
 
 
@@ -111,7 +111,7 @@ def build_empty_report_data(client: str, project_key: str, month_name: str, year
         "month_year_upper": f"{month_name.upper()} {year}",
         "title": cfg["title"],
         "overview": DEFAULT_OVERVIEW,
-        "client_logo": logo_data_uri(CONFIG[client]["client_logo"]),
+        "client_logo": CONFIG[client]["client_logo_uri"],
         "client_logo_height": CONFIG[client]["header_logo_h"],
         "company_logo": logo_data_uri("_company"),
         "sources": [
@@ -131,27 +131,32 @@ def build_empty_report_data(client: str, project_key: str, month_name: str, year
 
 
 # --------------------------------------------------------------------- state init
+_first_client = _CLIENT_NAMES[0]
+_first_project = list(CONFIG[_first_client]["projects"].keys())[0]
+
 if "initialized" not in st.session_state:
     today = dt.date.today()
     st.session_state.month_idx = today.month - 1
     st.session_state.year = today.year
     st.session_state.overview = DEFAULT_OVERVIEW
-    st.session_state.client = "Russ"
-    st.session_state.project = ""
-    st.session_state.sel_key = "Russ|"
+    st.session_state.client = _first_client
+    st.session_state.project = _first_project
+    st.session_state.sel_key = f"{_first_client}|{_first_project}"
     st.session_state.incidents = []
     st.session_state.measures = []
-    apply_defaults("Russ", "")
+    apply_defaults(_first_client, _first_project)
     # quick-batch section
-    st.session_state.quick_client_sel = "Russ"
+    st.session_state.quick_client_sel = _first_client
     st.session_state.quick_month_idx = today.month - 1
     st.session_state.quick_year = today.year
-    st.session_state.quick_russ = False
+    st.session_state.quick_single_proj = False
     st.session_state.quick_select_all = False
-    st.session_state.quick_prev_client = "Russ"
+    st.session_state.quick_prev_client = _first_client
     st.session_state.quick_pdfs = []
-    for _p in _HAIDEGG_PROJECTS:
-        st.session_state[f"quick_proj_{_p}"] = False
+    for _cd in CONFIG.values():
+        for _p in _cd["projects"]:
+            if _p:
+                st.session_state[f"quick_proj_{_p}"] = False
     st.session_state.initialized = True
 
 
@@ -189,25 +194,31 @@ st.caption(
 )
 
 qc1, qc2, qc3 = st.columns(3)
-quick_client = qc1.selectbox("Client", list(CONFIG.keys()), key="quick_client_sel")
+quick_client = qc1.selectbox("Client", _CLIENT_NAMES, key="quick_client_sel")
 qc2.selectbox("Month", range(12), key="quick_month_idx", format_func=lambda i: GERMAN_MONTHS[i])
 qc3.number_input("Year", min_value=2020, max_value=2100, step=1, key="quick_year")
 
-# Clear stale PDFs whenever the client changes
+# Clear stale PDFs and checkbox state whenever the client changes
 if st.session_state.get("quick_prev_client") != quick_client:
     st.session_state.quick_pdfs = []
+    st.session_state.quick_single_proj = False
+    st.session_state.quick_select_all = False
     st.session_state.quick_prev_client = quick_client
 
-# Project checkboxes
-if quick_client == "Russ":
-    st.checkbox("Russ (PowerBI)", key="quick_russ")
-    selected_projects = [""] if st.session_state.quick_russ else []
+# Determine whether this client has a single unnamed project or multiple named ones
+_qprojects = list(CONFIG[quick_client]["projects"].keys())
+_is_single = len(_qprojects) == 1 and _qprojects[0] == ""
+
+if _is_single:
+    _single_label = CONFIG[quick_client]["projects"][""]["title"]
+    st.checkbox(f"{quick_client} ({_single_label})", key="quick_single_proj")
+    selected_projects = [""] if st.session_state.quick_single_proj else []
 else:
     st.checkbox("Select all", key="quick_select_all", on_change=_on_quick_select_all)
-    _pcols = st.columns(len(_HAIDEGG_PROJECTS))
-    for _col, _p in zip(_pcols, _HAIDEGG_PROJECTS):
+    _pcols = st.columns(len(_qprojects))
+    for _col, _p in zip(_pcols, _qprojects):
         _col.checkbox(_p, key=f"quick_proj_{_p}")
-    selected_projects = [p for p in _HAIDEGG_PROJECTS if st.session_state.get(f"quick_proj_{p}")]
+    selected_projects = [p for p in _qprojects if st.session_state.get(f"quick_proj_{p}")]
 
 # Generate
 if st.button("⚡ Generate selected reports", type="primary", disabled=not selected_projects):
@@ -244,8 +255,8 @@ st.divider()
 # --------------------------------------------------------------------- 1. client/project
 st.header("1 · Client & Project")
 c1, c2, c3, c4 = st.columns(4)
-client = c1.selectbox("Client", list(CONFIG.keys()),
-                      index=list(CONFIG.keys()).index(st.session_state.client))
+client = c1.selectbox("Client", _CLIENT_NAMES,
+                      index=_CLIENT_NAMES.index(st.session_state.client) if st.session_state.client in _CLIENT_NAMES else 0)
 projects = list(CONFIG[client]["projects"].keys())
 proj_labels = {p: (p if p else "(no project)") for p in projects}
 project = c2.selectbox("Project", projects,
@@ -345,7 +356,7 @@ if include_quota:
     st.markdown("**Free quota lines (Gratiskontingent)**")
     for i, q in enumerate(st.session_state.quotas):
         a, b, c = st.columns([3, 1.5, 0.6])
-        q["label"] = a.text_input("Label suffix (e.g. FieldClimate; blank = none)", value=q["label"], key=f"q_label_{i}")
+        q["label"] = a.text_input("Label suffix (e.g. project name; blank = none)", value=q["label"], key=f"q_label_{i}")
         q["value"] = b.number_input("Hours", min_value=0, value=int(q["value"]), step=1, key=f"q_val_{i}")
         c.write(""); c.write("")
         c.button("🗑️", key=f"q_del_{i}", on_click=remove_quota, args=(i,))
@@ -403,7 +414,7 @@ if st.button("📄 Generate PDF", type="primary"):
         "month_year_upper": month_year_upper,
         "title": st.session_state.title,
         "overview": st.session_state.overview,
-        "client_logo": logo_data_uri(CONFIG[st.session_state.client]["client_logo"]),
+        "client_logo": CONFIG[st.session_state.client]["client_logo_uri"],
         "client_logo_height": CONFIG[st.session_state.client]["header_logo_h"],
         "company_logo": logo_data_uri("_company"),
         "sources": sources,

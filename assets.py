@@ -1,7 +1,7 @@
 """Logo loading + background cleanup for the maintenance report.
 
 Logos live in the "Maintenance Report Assets" subfolder. Some come on a solid
-white background (e.g. the Russ logo and the SolarEdge .jpg); this module makes
+white background (e.g. the SolarEdge .jpg); this module makes
 the border-connected white transparent so they sit cleanly on the report cards.
 
 Logos are also downscaled before embedding: they only display at ~30-40px, so
@@ -40,20 +40,15 @@ LOGOS = {
     "SunGrow": "Logo-SunGrow.png",
     "FusionSolar": "Logo-FusionSolar.png",
     # header logos
-    "_client_russ": "Logo-Client-Russ.png",
-    "_client_haidegg": "Logo-Client-Haidegg.png",
     "_company": "Company Logo.png",
 }
 
-# Names that need their solid background stripped (no usable alpha channel).
-_NEEDS_CLEANUP = {"Logo-Client-Russ.png", "Logo-SolarEdge.jpg", "Company Logo.png"}
+_NEEDS_CLEANUP = {"Logo-SolarEdge.jpg", "Company Logo.png"}
 
-# Files whose background is a baked-in checkerboard (white + light grey) from a
-# transparent PNG re-saved as JPG. Border flood-fill leaves speckles, so wipe the
-# bright low-saturation pixels everywhere instead.
+
 _NEEDS_GLOBAL_CLEANUP = {"Logo Excel.jpg"}
 
-_WHITE_THRESHOLD = 238  # channel value above which a pixel counts as "white-ish"
+_WHITE_THRESHOLD = 238  
 
 
 def _strip_border_white(img: Image.Image) -> Image.Image:

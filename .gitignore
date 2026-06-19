@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 *.pdf
+.streamlit/secrets.toml
+SECRETS_TO_PASTE.txt
+_*.tmp
